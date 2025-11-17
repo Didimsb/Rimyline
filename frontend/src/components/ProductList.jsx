@@ -1,8 +1,12 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 
-const ProductList = ({ products }) => {
+const ProductList = ({ products = [] }) => {
   // Numéro WhatsApp de la boutique (format international sans +)
   const whatsappPhone = "22249495667";
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
 
   const sendToWhatsApp = (product) => {
     const message = `Bonjour, je suis intéressé par ce produit.
@@ -15,18 +19,89 @@ const ProductList = ({ products }) => {
     window.open(url, "_blank");
   };
 
-  if (!products || products.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-gray-500 text-lg">Aucun produit disponible pour le moment.</p>
-      </div>
-    );
-  }
+  const categories = useMemo(() => {
+    const unique = new Set();
+    products.forEach((p) => {
+      if (p?.category) unique.add(p.category);
+    });
+    return Array.from(unique);
+  }, [products]);
+
+  const filteredProducts = useMemo(() => {
+    return products
+      .filter((p) =>
+        p.name?.toLowerCase().includes(search.toLowerCase())
+      )
+      .filter((p) =>
+        category ? p.category === category : true
+      )
+      .filter((p) =>
+        minPrice ? Number(p.price) >= parseFloat(minPrice) : true
+      )
+      .filter((p) =>
+        maxPrice ? Number(p.price) <= parseFloat(maxPrice) : true
+      );
+  }, [products, search, category, minPrice, maxPrice]);
 
   return (
-    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-10">
+    <>
+      <div className="flex flex-col md:flex-row gap-4 mb-6 items-center justify-between">
+        <input
+          type="text"
+          placeholder="Rechercher un produit..."
+          className="border px-4 py-2 rounded-lg w-full md:w-1/3 shadow-sm"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
 
-      {products.map((p) => (
+        <select
+          className="border px-4 py-2 rounded-lg shadow-sm w-full md:w-1/4"
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+        >
+          <option value="">Toutes catégories</option>
+          {categories.length === 0 ? (
+            <>
+              <option value="Dress">Dress</option>
+              <option value="Tops">Tops</option>
+              <option value="Melhfa">Melhfa</option>
+            </>
+          ) : (
+            categories.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))
+          )}
+        </select>
+
+        <div className="flex gap-2 w-full md:w-auto">
+          <input
+            type="number"
+            placeholder="Min prix"
+            className="border px-3 py-2 rounded-lg w-full md:w-24 shadow-sm"
+            value={minPrice}
+            onChange={(e) => setMinPrice(e.target.value)}
+          />
+          <input
+            type="number"
+            placeholder="Max prix"
+            className="border px-3 py-2 rounded-lg w-full md:w-24 shadow-sm"
+            value={maxPrice}
+            onChange={(e) => setMaxPrice(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {filteredProducts.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-gray-500 text-lg">
+            Aucun produit ne correspond à votre recherche pour le moment.
+          </p>
+        </div>
+      ) : (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-10">
+      {filteredProducts.map((p) => (
         <div
           key={p._id || p.id}
           onClick={() => sendToWhatsApp(p)}
@@ -60,8 +135,9 @@ const ProductList = ({ products }) => {
           </button>
         </div>
       ))}
-
-    </div>
+        </div>
+      )}
+    </>
   );
 };
 
